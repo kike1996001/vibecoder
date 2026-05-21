@@ -8,21 +8,5 @@
       "source": "/api/:path*",
       "destination": "server.js"
     }
-  ],
-  "env": [
-    "STRIPE_PUBLIC_KEY",
-    "STRIPE_SECRET_KEY",
-    "STRIPE_WEBHOOK_SECRET",
-    "SUPABASE_URL",
-    "SUPABASE_SERVICE_ROLE_KEY",
-    "SMTP_HOST",
-    "SMTP_PORT",
-    "SMTP_USER",
-    "SMTP_PASSWORD",
-    "SMTP_FROM",
-    "RESEND_API_KEY",
-    "API_PORT",
-    "FRONTEND_URL",
-    "VITE_API_URL"
   ]
 }
