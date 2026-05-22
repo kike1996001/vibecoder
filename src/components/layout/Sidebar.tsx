@@ -12,6 +12,7 @@ import {
   Clock,
   Circle,
   Sparkles,
+  BarChart3,
 } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -20,6 +21,7 @@ import { cn } from "@/lib/utils";
 
 const mainNav = [
   { icon: Home, label: "Home", path: "/" },
+  { icon: BarChart3, label: "Dashboard", path: "/dashboard" },
   { icon: FolderGit2, label: "Projects", path: "/projects" },
   { icon: MessageSquare, label: "Hub", path: "/hub" },
   { icon: Settings, label: "Settings", path: "/settings" },

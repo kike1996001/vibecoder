@@ -9,6 +9,7 @@ import { createRequire } from 'module';
 import { ProviderFactory } from './api/providers/factory.ts';
 import { supabase, getUserBalance, getCreditHistory, addCreditTransaction, hasEnoughCredits } from './api/supabaseClient.js';
 import { calculateCreditsNeeded } from './api/creditCalculator.js';
+import { metricsHandler, timelineHandler, providersHandler } from './api/metricsHandlers.js';
 
 const require = createRequire(import.meta.url);
 const { sendPaymentConfirmation } = require('./emailService.cjs');
@@ -678,6 +679,21 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
     console.error('Webhook error:', error);
     res.status(400).json({ error: 'Webhook processing failed' });
   }
+});
+
+/**
+ * Metrics Endpoints - Dashboard data
+ */
+app.get('/api/metrics/summary', verifyJWT, async (req, res) => {
+  await metricsHandler(req, res, supabase);
+});
+
+app.get('/api/metrics/timeline', verifyJWT, async (req, res) => {
+  await timelineHandler(req, res, supabase);
+});
+
+app.get('/api/metrics/providers', verifyJWT, async (req, res) => {
+  await providersHandler(req, res, supabase);
 });
 
 /**

@@ -5,6 +5,7 @@ import { AppShell } from "./components/layout/AppShell";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { Auth } from "./pages/Auth";
 import { Home } from "./pages/Home";
+import { Dashboard } from "./pages/Dashboard";
 import { Workspace } from "./pages/Workspace";
 import { Projects } from "./pages/Projects";
 import { Settings } from "./pages/Settings";
@@ -86,6 +87,22 @@ export function App() {
                   className="h-full w-full"
                 >
                   <Home />
+                </motion.div>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <motion.div
+                  key="dashboard"
+                  variants={pageVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={pageTransition}
+                  className="h-full w-full"
+                >
+                  <Dashboard />
                 </motion.div>
               }
             />
