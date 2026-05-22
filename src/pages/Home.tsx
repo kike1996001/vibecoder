@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProviderSelector } from "@/components/ui/ProviderSelector";
+import { SmartPromptWizard } from "@/components/wizard/SmartPromptWizard";
 
 const projectTypes: Array<{ icon: any; label: string; desc: string; template: 'landing' | 'saas' | 'ecommerce' | 'admin' }> = [
   { icon: Zap, label: "Landing Page", desc: "Marketing & conversion", template: "landing" },
@@ -44,6 +45,7 @@ export function Home() {
   const [selectedTemplate, setSelectedTemplate] = useState<'landing' | 'saas' | 'ecommerce' | 'admin'>(projectTypes[0].template);
   const [appType, setAppType] = useState<'web' | 'mobile'>('web');
   const [displayText, setDisplayText] = useState("");
+  const [showWizard, setShowWizard] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const navigate = useNavigate();
 
@@ -360,7 +362,36 @@ export function Home() {
           <span className="w-1 h-1 rounded-full bg-zinc-700" />
           <span className="w-1 h-1 rounded-full bg-zinc-700" />
         </motion.div>
+
+        {/* Smart Wizard Button */}
+        <motion.button
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.55 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowWizard(true)}
+          className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-3 rounded-full bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40 transition-all"
+        >
+          <Wand2 className="h-4 w-4" />
+          <span className="text-sm font-medium">Smart Builder</span>
+        </motion.button>
       </div>
+
+      {/* Smart Prompt Wizard Modal */}
+      <AnimatePresence>
+        {showWizard && (
+          <SmartPromptWizard
+            onComplete={(data, generatedPrompt) => {
+              setPrompt(generatedPrompt);
+              setShowWizard(false);
+              // Auto scroll to prompt input
+              setTimeout(() => textareaRef.current?.focus(), 100);
+            }}
+            onCancel={() => setShowWizard(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { ProviderFactory } from './api/providers/factory.ts';
 import { supabase, getUserBalance, getCreditHistory, addCreditTransaction, hasEnoughCredits } from './api/supabaseClient.js';
 import { calculateCreditsNeeded } from './api/creditCalculator.js';
 import { metricsHandler, timelineHandler, providersHandler } from './api/metricsHandlers.js';
+import { trackEvent } from './api/analyticsService.js';
 
 const require = createRequire(import.meta.url);
 const { sendPaymentConfirmation } = require('./emailService.cjs');
@@ -694,6 +695,70 @@ app.get('/api/metrics/timeline', verifyJWT, async (req, res) => {
 
 app.get('/api/metrics/providers', verifyJWT, async (req, res) => {
   await providersHandler(req, res, supabase);
+});
+
+/**
+ * Analytics Endpoints
+ */
+app.post('/api/analytics/track', verifyJWT, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { eventName, eventType, data, sessionId } = req.body;
+
+    const { data: result, error } = await supabase
+      .from('analytics_events')
+      .insert([
+        {
+          user_id: userId,
+          event_name: eventName,
+          event_type: eventType,
+          data: data || {},
+          session_id: sessionId,
+          metadata: data?.metadata || {},
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+
+    if (error) throw error;
+
+    res.json({ success: true, data: result });
+  } catch (error) {
+    console.error('Analytics tracking error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/analytics/summary', verifyJWT, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const days = parseInt(req.query.days) || 30;
+
+    const { data, error } = await supabase
+      .from('analytics_events')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('timestamp', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString());
+
+    if (error) throw error;
+
+    // Aggregate stats
+    const stats = {
+      totalEvents: data?.length || 0,
+      pageViews: data?.filter(e => e.event_type === 'page_view').length || 0,
+      interactions: data?.filter(e => e.event_type === 'interaction').length || 0,
+      generations: data?.filter(e => e.event_type === 'generation').length || 0,
+      errors: data?.filter(e => e.event_type === 'error').length || 0,
+      conversions: data?.filter(e => e.event_type === 'conversion').length || 0,
+    };
+
+    // Calculate conversion rate
+    stats.conversionRate = stats.pageViews > 0 ? (stats.conversions / stats.pageViews) * 100 : 0;
+
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error('Analytics summary error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 /**
