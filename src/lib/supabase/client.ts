@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 // Supabase configuration
 // These are safe to expose (anon key has limited permissions via RLS)
 const SUPABASE_URL = "https://teedklgztytpogkjbtva.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlZWRrbGd6dHl0cG9na2pidHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTMyMDkxOTgsImV4cCI6MTcyODc2MTE5OH0.eVKn98KrWRGVZM65b3IVvkLvcsm-q0JQzKJ6v80LqG0";
+const SUPABASE_KEY = "sb_publishable_goLj7l6-C3n6vKxdFjst_w_82W7PRUn";
 
 const supabaseUrl = SUPABASE_URL;
 const supabaseKey = SUPABASE_KEY;
