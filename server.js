@@ -11,6 +11,7 @@ import { supabase, getUserBalance, getCreditHistory, addCreditTransaction, hasEn
 import { calculateCreditsNeeded } from './api/creditCalculator.js';
 import { metricsHandler, timelineHandler, providersHandler } from './api/metricsHandlers.js';
 import { trackEvent } from './api/analyticsService.js';
+import { optimizePrompt, getImprovementsSummary } from './api/promptOptimizer.js';
 
 const require = createRequire(import.meta.url);
 const { sendPaymentConfirmation } = require('./emailService.cjs');
@@ -262,6 +263,15 @@ app.post('/api/generate', generateLimiter, verifyJWT, async (req, res) => {
     const template = validated.template || 'landing';
     const appType = validated.appType || 'web';
 
+    // ✨ OPTIMIZE THE PROMPT AUTOMATICALLY
+    const optimizationResult = optimizePrompt(validated.prompt);
+    const improvementsSummary = getImprovementsSummary(optimizationResult);
+    
+    console.log(`[Optimize] Prompt optimized with ${optimizationResult.improvements.length} improvements`);
+    
+    // Use the optimized prompt for generation
+    validated.prompt = optimizationResult.optimized;
+
     // Calculate credits needed
     const creditsNeeded = calculateCreditsNeeded(template, provider, appType);
     
@@ -303,6 +313,16 @@ app.post('/api/generate', generateLimiter, verifyJWT, async (req, res) => {
 
       generationSuccess = true;
       sendEvent(res, { status: 'generation_complete', message: 'App generated successfully' });
+
+      // Send optimizations info
+      if (improvementsSummary.hasImprovements) {
+        sendEvent(res, {
+          type: 'prompt_optimized',
+          improvements: improvementsSummary.summary,
+          count: improvementsSummary.count,
+          message: `✨ Prompt enhanced with ${improvementsSummary.count} improvements`
+        });
+      }
 
       // Deduct credits after successful generation
       try {
