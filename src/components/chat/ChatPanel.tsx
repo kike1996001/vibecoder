@@ -20,6 +20,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ProviderSelector } from '@/components/ui/ProviderSelector';
 import { useAppGeneration } from '@/hooks/useAppGeneration';
 import { useProjectStore } from '@/stores/projectStore';
+import { GenerationStatusDisplay } from './GenerationStatusDisplay';
+import { StatusMessages, useStatusMessages } from './StatusMessages';
+import { generateStatusSequence, getStatusMessageInterval, getEstimatedGenerationTime } from '@/services/statusMessageGenerator';
+import { getComplexity } from '@/services/complexityDetector';
 import { cn } from '@/lib/utils';
 
 interface Message {
@@ -72,6 +76,13 @@ export function ChatPanel({
 }: ChatPanelProps) {
   const [input, setInput] = useState('');
   const [provider, setProvider] = useState(initialProvider);
+  const [currentStatus, setCurrentStatus] = useState('');
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [statusMessageSequence, setStatusMessageSequence] = useState<string[]>([]);
+  const [statusMessageInterval, setStatusMessageInterval] = useState(3000);
+  const [showTerminal, setShowTerminal] = useState(true);
+  const [showProviderMenu, setShowProviderMenu] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -80,9 +91,6 @@ export function ChatPanel({
       timestamp: Date.now(),
     },
   ]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showTerminal, setShowTerminal] = useState(true);
-  const [showProviderMenu, setShowProviderMenu] = useState(false);
   const [logs, setLogs] = useState<TerminalLog[]>([
     {
       id: '1',
@@ -129,6 +137,9 @@ export function ChatPanel({
     }
   }, [input]);
 
+  // Use status messages hook
+  const statusMessages = useStatusMessages(statusMessageSequence, isGenerating, statusMessageInterval);
+
   const addLog = (message: string, type: TerminalLog['type'] = 'info') => {
     const newLog: TerminalLog = {
       id: `log-${Date.now()}`,
@@ -141,7 +152,7 @@ export function ChatPanel({
 
   const submitPrompt = async (override?: string) => {
     const text = (override ?? input).trim();
-    if (!text || isLoading) return;
+    if (!text || isGenerating) return;
 
     const userMessage: Message = {
       id: `user-${Date.now()}`,
@@ -152,7 +163,9 @@ export function ChatPanel({
 
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
-    setIsLoading(true);
+    setIsGenerating(true);
+    setCurrentStatus('');
+    setGenerationProgress(0);
     onGeneratingChange?.(true);
 
     try {
@@ -178,6 +191,17 @@ export function ChatPanel({
         addLog('Cambios aplicados exitosamente', 'success');
       } else {
         addLog('Generando nueva app...', 'info');
+        
+        // Generate status message sequence
+        const appComplexity = getComplexity(text);
+        const hasDesignAnswers = Boolean(designAnswers && Object.keys(designAnswers).length > 0);
+        const sequence = generateStatusSequence(appComplexity as any, hasDesignAnswers);
+        const estimatedTime = getEstimatedGenerationTime(appComplexity as any, hasDesignAnswers);
+        const interval = getStatusMessageInterval(estimatedTime, sequence.length);
+        
+        setStatusMessageSequence(sequence);
+        setStatusMessageInterval(interval);
+        
         await generateApp(text, { provider, template, appType, designAnswers });
         onProgressChange?.(75);
 
@@ -206,7 +230,9 @@ export function ChatPanel({
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
-      setIsLoading(false);
+      setIsGenerating(false);
+      setCurrentStatus('');
+      setGenerationProgress(0);
       onGeneratingChange?.(false);
       onStatusChange?.('');
       onProgressChange?.(0);
@@ -242,14 +268,12 @@ export function ChatPanel({
           isExpanded ? "opacity-100" : "opacity-0 w-0"
         )}>
           <p className="text-[10px] uppercase tracking-[0.3em] text-white/40 font-medium whitespace-nowrap">Agent Chat</p>
-          {isLoading && (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-300 text-[10px]">
+          {isGenerating && (            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-300 text-[10px]">
               <span className="w-1 h-1 rounded-full bg-violet-400 animate-pulse" />
               Trabajando
             </span>
           )}
-          
-          {/* Provider selector button - Compact */}
+                    {/* Provider selector button - Compact */}
           <div className="ml-auto flex items-center gap-2 relative">
             {/* Template badge */}
             <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border border-white/[0.12] bg-white/[0.04] text-[10px] text-white/60">
@@ -355,7 +379,7 @@ export function ChatPanel({
                     </motion.div>
                   )}
 
-                  {isLoading && !streamingText && (
+                  {isGenerating && !streamingText && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3 justify-start">
                       <Loader2 className="h-3.5 w-3.5 animate-spin text-violet-400" />
                     </motion.div>
@@ -365,6 +389,25 @@ export function ChatPanel({
               </div>
             </ScrollArea>
           </div>
+
+          {/* Generation Status Display */}
+          {isGenerating && (
+            <div className="flex-shrink-0 px-4 py-3 bg-[#050508] border-t border-white/[0.06] space-y-3">
+              {/* Status Messages */}
+              <StatusMessages 
+                messages={statusMessages} 
+                isActive={isGenerating && statusMessages.length > 0}
+              />
+              
+              {/* Generation Status Display */}
+              <GenerationStatusDisplay
+                isGenerating={isGenerating}
+                currentStatus={currentStatus}
+                progress={generationProgress}
+                designSystem={designAnswers}
+              />
+            </div>
+          )}
 
           {/* Input Area - Redesigned with toolbar */}
           <div className="shrink-0 bg-[#0a0a0f] border-t border-white/[0.06]">
@@ -423,7 +466,7 @@ export function ChatPanel({
                   {/* Right side: Send button */}
                   <button
                     type="submit"
-                    disabled={isLoading || !input.trim()}
+                    disabled={isGenerating || !input.trim()}
                     className={cn(
                       "p-2 rounded-lg transition-all",
                       input.trim()

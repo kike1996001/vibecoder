@@ -13,6 +13,7 @@ import { metricsHandler, timelineHandler, providersHandler } from './api/metrics
 import { trackEvent } from './api/analyticsService.js';
 import { optimizePrompt, getImprovementsSummary } from './api/promptOptimizer.js';
 import { formatDesignAnswersForGeneration, logDesignAnswers } from './api/designAnswerFormatter.js';
+import { getStatusMessage, createStatusUpdateEvent } from './api/statusMessageService.js';
 
 const require = createRequire(import.meta.url);
 const { sendPaymentConfirmation } = require('./emailService.cjs');
@@ -339,6 +340,9 @@ app.post('/api/generate', generateLimiter, verifyJWT, async (req, res) => {
     // Generate application
     let generationId;
     let generationSuccess = false;
+    let generationStartTime = Date.now();
+    let statusIntervalId;
+    
     try {
       // Create a generation ID for tracking
       generationId = crypto.randomUUID?.() || Date.now().toString();
@@ -357,12 +361,42 @@ app.post('/api/generate', generateLimiter, verifyJWT, async (req, res) => {
         });
       }
 
+      // Start status message streaming
+      sendEvent(res, {
+        type: 'status_update',
+        message: '⚙️  Analyzing requirements...',
+        progress: 5,
+      });
+
+      // Send status updates every 1.5 seconds
+      statusIntervalId = setInterval(() => {
+        const elapsedMs = Date.now() - generationStartTime;
+        const statusEvent = createStatusUpdateEvent(elapsedMs, designAnswers);
+        sendEvent(res, statusEvent);
+      }, 1500);
+
+      // Generate the app
       await providerService.generate(validated, apiKey, (chunk) => {
         sendEvent(res, { chunk });
       });
 
+      // Clear status interval
+      if (statusIntervalId) clearInterval(statusIntervalId);
+
       generationSuccess = true;
-      sendEvent(res, { status: 'generation_complete', message: 'App generated successfully' });
+      
+      // Final status message
+      sendEvent(res, {
+        type: 'status_update',
+        message: '✨ Finalizing...',
+        progress: 95,
+      });
+
+      sendEvent(res, { 
+        status: 'generation_complete', 
+        message: 'App generated successfully',
+        progress: 100,
+      });
 
       // Send optimizations info
       if (improvementsSummary.hasImprovements) {
@@ -398,6 +432,9 @@ app.post('/api/generate', generateLimiter, verifyJWT, async (req, res) => {
         });
       }
     } catch (generationError) {
+      // Clear status interval on error
+      if (statusIntervalId) clearInterval(statusIntervalId);
+      
       console.error('Generation error:', generationError);
       sendEvent(res, { 
         type: 'generation_error',
