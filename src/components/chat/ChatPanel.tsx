@@ -15,16 +15,22 @@ import {
   Plus,
   Paperclip,
   Wand2,
+  BarChart3,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ProviderSelector } from '@/components/ui/ProviderSelector';
+import { LanguageSelector } from '@/components/ui/LanguageSelector';
 import { useAppGeneration } from '@/hooks/useAppGeneration';
 import { useProjectStore } from '@/stores/projectStore';
 import { GenerationStatusDisplay } from './GenerationStatusDisplay';
 import { StatusMessages, useStatusMessages } from './StatusMessages';
 import { DesignValidationReport } from './DesignValidationReport';
+import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { generateStatusSequence, getStatusMessageInterval, getEstimatedGenerationTime } from '@/services/statusMessageGenerator';
+import { generateStatusSequenceI18N } from '@/services/statusMessageI18n';
 import { getComplexity } from '@/services/complexityDetector';
+import { analyticsTracker } from '@/services/analyticsService';
+import { Language } from '@/services/statusMessageI18n';
 import { cn } from '@/lib/utils';
 
 interface Message {
@@ -87,6 +93,9 @@ export function ChatPanel({
   const [validationResult, setValidationResult] = useState<any>(null);
   const [showValidationReport, setShowValidationReport] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
+  const [language, setLanguage] = useState<Language>('es');
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [generationStartTime, setGenerationStartTime] = useState<number | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -235,10 +244,14 @@ export function ChatPanel({
       } else {
         addLog('Generando nueva app...', 'info');
         
-        // Generate status message sequence
+        // Record generation start time for analytics
+        const startTime = Date.now();
+        setGenerationStartTime(startTime);
+        
+        // Generate status message sequence in selected language
         const appComplexity = getComplexity(text);
         const hasDesignAnswers = Boolean(designAnswers && Object.keys(designAnswers).length > 0);
-        const sequence = generateStatusSequence(appComplexity as any, hasDesignAnswers);
+        const sequence = generateStatusSequenceI18N(language, appComplexity as any, hasDesignAnswers);
         const estimatedTime = getEstimatedGenerationTime(appComplexity as any, hasDesignAnswers);
         const interval = getStatusMessageInterval(estimatedTime, sequence.length);
         
@@ -250,6 +263,19 @@ export function ChatPanel({
 
         onStatusChange?.('Finalizando...');
         addLog('App generada correctamente', 'success');
+
+        // Track analytics event
+        const generationTime = Date.now() - startTime;
+        analyticsTracker.trackGeneration({
+          timestamp: new Date(),
+          appType: appComplexity as any,
+          prompt: text,
+          promptLength: text.length,
+          hasDesignAnswers,
+          designAnswers,
+          generationTime,
+          statusCode: 'success',
+        });
 
         const assistantMessage: Message = {
           id: `assistant-${Date.now()}`,
@@ -281,6 +307,23 @@ export function ChatPanel({
       const errorMsg = error instanceof Error ? error.message : 'No se pudo generar';
       addLog(errorMsg, 'error');
 
+      // Track error analytics
+      const appComplexity = getComplexity(input.trim());
+      if (generationStartTime) {
+        const generationTime = Date.now() - generationStartTime;
+        analyticsTracker.trackGeneration({
+          timestamp: new Date(),
+          appType: appComplexity as any,
+          prompt: input.trim(),
+          promptLength: input.trim().length,
+          hasDesignAnswers: Boolean(designAnswers && Object.keys(designAnswers).length > 0),
+          designAnswers,
+          generationTime,
+          statusCode: 'error',
+          errorMessage: errorMsg,
+        });
+      }
+
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
         role: 'system',
@@ -292,6 +335,7 @@ export function ChatPanel({
       setIsGenerating(false);
       setCurrentStatus('');
       setGenerationProgress(0);
+      setGenerationStartTime(null);
       onGeneratingChange?.(false);
       onStatusChange?.('');
       onProgressChange?.(0);
@@ -385,6 +429,28 @@ export function ChatPanel({
             <Maximize2 className="h-4 w-4 text-white/60 hover:text-white/100" />
           )}
         </button>
+
+        {/* Language Selector & Analytics Button */}
+        <div className="flex items-center gap-1.5 ml-2">
+          <LanguageSelector
+            currentLanguage={language}
+            onLanguageChange={setLanguage}
+            compact={true}
+          />
+
+          <button
+            onClick={() => setShowAnalytics(!showAnalytics)}
+            className={cn(
+              "p-1.5 rounded-lg border border-white/[0.12] transition-colors flex items-center gap-1.5 text-[10px]",
+              showAnalytics
+                ? 'bg-violet-500/20 text-violet-300 border-violet-500/30'
+                : 'bg-white/[0.04] text-white/60 hover:bg-white/[0.08] hover:text-white/80'
+            )}
+            title="Show analytics dashboard"
+          >
+            <BarChart3 className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* Content Container - Always rendered, visibility controlled by opacity */}
@@ -470,6 +536,12 @@ export function ChatPanel({
               <DesignValidationReport
                 result={validationResult}
                 isVisible={showValidationReport && !isGenerating && !isValidating}
+              />
+
+              {/* Analytics Dashboard */}
+              <AnalyticsDashboard
+                isVisible={showAnalytics}
+                onClose={() => setShowAnalytics(false)}
               />
             </div>
           )}
