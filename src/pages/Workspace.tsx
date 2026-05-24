@@ -17,6 +17,7 @@ export function Workspace() {
   const [provider, setProvider] = useState<string>('anthropic');
   const [template, setTemplate] = useState<'landing' | 'saas' | 'ecommerce' | 'admin'>('landing');
   const [appType, setAppType] = useState<'web' | 'mobile'>('web');
+  const [designAnswers, setDesignAnswers] = useState<any>(null);
   const [isBooting, setIsBooting] = useState(true);
   const [previewMode, setPreviewMode] = useState<PreviewMode>('preview');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -40,6 +41,8 @@ export function Workspace() {
       const storedProvider = window.localStorage.getItem('workshop_provider');
       const storedTemplate = window.localStorage.getItem('workshop_template');
       const storedAppType = window.localStorage.getItem('workshop_appType');
+      const storedDesignAnswers = window.localStorage.getItem('workshop_design_answers');
+      
       if (storedPrompt) {
         setInitialPrompt(storedPrompt);
         // Clear it after reading
@@ -56,6 +59,15 @@ export function Workspace() {
       if (storedAppType && ['web', 'mobile'].includes(storedAppType)) {
         setAppType(storedAppType as any);
         window.localStorage.removeItem('workshop_appType');
+      }
+      if (storedDesignAnswers) {
+        try {
+          const parsed = JSON.parse(storedDesignAnswers);
+          setDesignAnswers(parsed);
+          window.localStorage.removeItem('workshop_design_answers');
+        } catch (e) {
+          console.warn('Failed to parse design answers:', e);
+        }
       }
     } catch (e) {
       console.warn('Failed to read pending prompt/provider/template/appType from localStorage:', e);
@@ -128,6 +140,7 @@ export function Workspace() {
             provider={provider}
             template={template}
             appType={appType}
+            designAnswers={designAnswers}
             onGeneratingChange={setIsGenerating}
             onProgressChange={setGenerationProgress}
             onStatusChange={setGenerationStatus}

@@ -59,6 +59,7 @@ export interface AIRequestOptions {
   template?: 'landing' | 'saas' | 'ecommerce' | 'admin';
   appType?: 'web' | 'mobile';
   authToken?: string;  // ✅ NEW: JWT token
+  designAnswers?: any; // Design system choices from adaptive workflow
 }
 
 async function streamResponse(
@@ -142,6 +143,7 @@ export async function generateApp(
       provider: options?.provider || 'anthropic',
       model: options?.model,
       appType: options?.appType || 'web',
+      designAnswers: options?.designAnswers,
     }),
   });
 
@@ -176,6 +178,7 @@ export async function refineApp(
       provider: options?.provider || 'anthropic',
       model: options?.model,
       appType: options?.appType || 'web',
+      designAnswers: options?.designAnswers,
     }),
   });
 

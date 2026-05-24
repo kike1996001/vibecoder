@@ -12,6 +12,7 @@ import { calculateCreditsNeeded } from './api/creditCalculator.js';
 import { metricsHandler, timelineHandler, providersHandler } from './api/metricsHandlers.js';
 import { trackEvent } from './api/analyticsService.js';
 import { optimizePrompt, getImprovementsSummary } from './api/promptOptimizer.js';
+import { formatDesignAnswersForGeneration, logDesignAnswers } from './api/designAnswerFormatter.js';
 
 const require = createRequire(import.meta.url);
 const { sendPaymentConfirmation } = require('./emailService.cjs');
@@ -75,6 +76,32 @@ const GenerateRequestSchema = z.object({
     content: z.string(),
     language: z.string(),
   })).optional(),
+  // Design system answers from adaptive workflow
+  designAnswers: z.object({
+    colorPalette: z.object({
+      id: z.string(),
+      name: z.string(),
+      primary: z.string(),
+      secondary: z.string(),
+      accent: z.string(),
+    }).optional(),
+    typography: z.object({
+      id: z.string(),
+      name: z.string(),
+      heading: z.string(),
+      body: z.string(),
+    }).optional(),
+    layoutDirection: z.object({
+      id: z.string(),
+      name: z.string(),
+      layout: z.string(),
+    }).optional(),
+    designMockup: z.object({
+      id: z.string(),
+      name: z.string(),
+      vibe: z.string(),
+    }).optional(),
+  }).optional(),
 });
 
 const InlineEditRequestSchema = z.object({
@@ -262,6 +289,7 @@ app.post('/api/generate', generateLimiter, verifyJWT, async (req, res) => {
     const provider = validated.provider || 'anthropic';
     const template = validated.template || 'landing';
     const appType = validated.appType || 'web';
+    const designAnswers = validated.designAnswers;
 
     // ✨ OPTIMIZE THE PROMPT AUTOMATICALLY
     const optimizationResult = optimizePrompt(validated.prompt);
@@ -269,8 +297,16 @@ app.post('/api/generate', generateLimiter, verifyJWT, async (req, res) => {
     
     console.log(`[Optimize] Prompt optimized with ${optimizationResult.improvements.length} improvements`);
     
-    // Use the optimized prompt for generation
-    validated.prompt = optimizationResult.optimized;
+    // 🎨 ENHANCE PROMPT WITH DESIGN SYSTEM DECISIONS
+    let enhancedPrompt = optimizationResult.optimized;
+    const designFormatted = formatDesignAnswersForGeneration(designAnswers);
+    if (designFormatted) {
+      enhancedPrompt += designFormatted;
+      console.log(`[Design] Prompt enhanced with design system: ${designAnswers.colorPalette?.name || 'none'}`);
+    }
+    
+    // Use the enhanced prompt for generation
+    validated.prompt = enhancedPrompt;
 
     // Calculate credits needed
     const creditsNeeded = calculateCreditsNeeded(template, provider, appType);
@@ -307,6 +343,20 @@ app.post('/api/generate', generateLimiter, verifyJWT, async (req, res) => {
       // Create a generation ID for tracking
       generationId = crypto.randomUUID?.() || Date.now().toString();
 
+      // Send design system info to client
+      if (designFormatted) {
+        sendEvent(res, {
+          type: 'design_system_applied',
+          design: {
+            colorPalette: designAnswers?.colorPalette?.name || null,
+            typography: designAnswers?.typography?.name || null,
+            layout: designAnswers?.layoutDirection?.name || null,
+            direction: designAnswers?.designMockup?.name || null,
+          },
+          message: `Applying design system to generated code...`,
+        });
+      }
+
       await providerService.generate(validated, apiKey, (chunk) => {
         sendEvent(res, { chunk });
       });
@@ -329,6 +379,7 @@ app.post('/api/generate', generateLimiter, verifyJWT, async (req, res) => {
         const newBalance = await addCreditTransaction(userId, -creditsNeeded, 'generation', {
           generation_id: generationId,
           description: `Generated ${template} app with ${provider}`,
+          design_system: designAnswers ? logDesignAnswers(userId, designAnswers, validated.prompt) : null,
         });
         
         console.log(`✅ Deducted ${creditsNeeded} credits from user ${userId}, new balance: ${newBalance}`);

@@ -47,6 +47,7 @@ interface ChatPanelProps {
   provider?: string;
   template?: 'landing' | 'saas' | 'ecommerce' | 'admin';
   appType?: 'web' | 'mobile';
+  designAnswers?: any; // Design system choices from adaptive workflow
 }
 
 const suggestions = [
@@ -67,6 +68,7 @@ export function ChatPanel({
   provider: initialProvider = 'anthropic',
   template = 'landing',
   appType = 'web',
+  designAnswers,
 }: ChatPanelProps) {
   const [input, setInput] = useState('');
   const [provider, setProvider] = useState(initialProvider);
@@ -176,7 +178,7 @@ export function ChatPanel({
         addLog('Cambios aplicados exitosamente', 'success');
       } else {
         addLog('Generando nueva app...', 'info');
-        await generateApp(text, { provider, template, appType });
+        await generateApp(text, { provider, template, appType, designAnswers });
         onProgressChange?.(75);
 
         onStatusChange?.('Finalizando...');

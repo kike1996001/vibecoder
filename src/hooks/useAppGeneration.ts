@@ -63,7 +63,7 @@ export function useAppGeneration() {
   }, [success, showError, warning]);
 
   const generate = useCallback(
-    async (prompt: string, options?: { provider?: string; model?: string; template?: 'landing' | 'saas' | 'ecommerce' | 'admin'; appType?: 'web' | 'mobile' }) => {
+    async (prompt: string, options?: { provider?: string; model?: string; template?: 'landing' | 'saas' | 'ecommerce' | 'admin'; appType?: 'web' | 'mobile'; designAnswers?: any }) => {
       if (!user?.id) {
         toast.error('User not authenticated');
         throw new Error('User not authenticated');
