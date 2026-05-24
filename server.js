@@ -458,6 +458,46 @@ app.post('/api/generate', generateLimiter, verifyJWT, async (req, res) => {
 });
 
 /**
+ * POST /api/validate-design
+ * Validates generated code against design system choices
+ */
+app.post('/api/validate-design', globalLimiter, async (req, res) => {
+  try {
+    const { generatedHTML, designAnswers } = req.body;
+
+    if (!generatedHTML || !designAnswers) {
+      return res.status(400).json({
+        error: 'Missing required fields: generatedHTML, designAnswers',
+      });
+    }
+
+    // Dynamic import of validation function
+    const { validateDesignConsistency } = await import('./src/services/designValidation.ts');
+
+    // Validate design consistency
+    const validationResult = await validateDesignConsistency(generatedHTML, designAnswers);
+
+    // Log validation result
+    console.log('Design Validation Complete:', {
+      score: validationResult.overallScore,
+      allValid: validationResult.allValid,
+      timestamp: new Date().toISOString(),
+    });
+
+    res.json({
+      success: true,
+      validation: validationResult,
+    });
+  } catch (error) {
+    console.error('Validation error:', error);
+    res.status(500).json({
+      error: 'Validation failed',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
  * POST /api/ai/inline-edit
  * AI-assisted code editing
  */

@@ -22,6 +22,7 @@ import { useAppGeneration } from '@/hooks/useAppGeneration';
 import { useProjectStore } from '@/stores/projectStore';
 import { GenerationStatusDisplay } from './GenerationStatusDisplay';
 import { StatusMessages, useStatusMessages } from './StatusMessages';
+import { DesignValidationReport } from './DesignValidationReport';
 import { generateStatusSequence, getStatusMessageInterval, getEstimatedGenerationTime } from '@/services/statusMessageGenerator';
 import { getComplexity } from '@/services/complexityDetector';
 import { cn } from '@/lib/utils';
@@ -83,6 +84,9 @@ export function ChatPanel({
   const [statusMessageInterval, setStatusMessageInterval] = useState(3000);
   const [showTerminal, setShowTerminal] = useState(true);
   const [showProviderMenu, setShowProviderMenu] = useState(false);
+  const [validationResult, setValidationResult] = useState<any>(null);
+  const [showValidationReport, setShowValidationReport] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -148,6 +152,45 @@ export function ChatPanel({
       timestamp: new Date(),
     };
     setLogs((prev) => [...prev, newLog]);
+  };
+
+  const validateDesignAfterGeneration = async (generatedHTML: string) => {
+    if (!designAnswers || Object.keys(designAnswers).length === 0) {
+      return; // No design answers to validate
+    }
+
+    try {
+      setIsValidating(true);
+      addLog('Validando consistencia del design system...', 'info');
+
+      const response = await fetch('/api/validate-design', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          generatedHTML,
+          designAnswers,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Validation failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (data.validation) {
+        setValidationResult(data.validation);
+        setShowValidationReport(true);
+        addLog(`Design validation complete: ${data.validation.overallScore}/100`, 'success');
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Validation error';
+      addLog(`Design validation failed: ${errorMsg}`, 'error');
+    } finally {
+      setIsValidating(false);
+    }
   };
 
   const submitPrompt = async (override?: string) => {
@@ -218,6 +261,22 @@ export function ChatPanel({
       }
 
       onProgressChange?.(100);
+      
+      // Trigger design validation after generation completes
+      if (designAnswers && Object.keys(designAnswers).length > 0) {
+        setTimeout(() => {
+          // Try to get the generated HTML from the preview frame
+          const previewFrame = document.querySelector('iframe[data-preview="true"]') as HTMLIFrameElement;
+          if (previewFrame?.contentDocument) {
+            try {
+              const html = previewFrame.contentDocument.documentElement.outerHTML;
+              validateDesignAfterGeneration(html);
+            } catch (e) {
+              addLog('Could not access preview for validation', 'warning');
+            }
+          }
+        }, 1000);
+      }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'No se pudo generar';
       addLog(errorMsg, 'error');
@@ -405,6 +464,12 @@ export function ChatPanel({
                 currentStatus={currentStatus}
                 progress={generationProgress}
                 designSystem={designAnswers}
+              />
+
+              {/* Design Validation Report */}
+              <DesignValidationReport
+                result={validationResult}
+                isVisible={showValidationReport && !isGenerating && !isValidating}
               />
             </div>
           )}
