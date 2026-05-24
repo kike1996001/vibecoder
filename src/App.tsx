@@ -66,6 +66,24 @@ export function App() {
             }
           />
 
+          {/* Home Route (PUBLIC - NO LOGIN REQUIRED) */}
+          <Route
+            path="/"
+            element={
+              <motion.div
+                key="home"
+                variants={pageVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={pageTransition}
+                className="h-full w-full"
+              >
+                <Home />
+              </motion.div>
+            }
+          />
+
           {/* Protected Routes with AppShell layout */}
           <Route
             element={
@@ -74,22 +92,6 @@ export function App() {
               </ProtectedRoute>
             }
           >
-            <Route
-              path="/"
-              element={
-                <motion.div
-                  key="home"
-                  variants={pageVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  transition={pageTransition}
-                  className="h-full w-full"
-                >
-                  <Home />
-                </motion.div>
-              }
-            />
             <Route
               path="/dashboard"
               element={
