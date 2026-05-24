@@ -1,0 +1,309 @@
+/**
+ * Design Question Flow Service
+ * Handles the sequence of design clarification questions for complex apps
+ * Based on Lovable's 4-step design questionnaire
+ */
+
+export type DesignQuestion = 
+  | 'colorPalette' 
+  | 'typography' 
+  | 'layoutDirection' 
+  | 'designMockup';
+
+export interface ColorPaletteOption {
+  id: string;
+  name: string;
+  description: string;
+  primary: string; // hex color
+  secondary: string;
+  accent: string;
+  example: string; // description of the style
+}
+
+export interface TypographyOption {
+  id: string;
+  name: string;
+  heading: string; // font name for headings
+  body: string; // font name for body text
+  description: string;
+  vibe: string;
+}
+
+export interface LayoutOption {
+  id: string;
+  name: string;
+  description: string;
+  layout: string; // Hero, Grid, Asymmetric, etc.
+  sections: string[];
+}
+
+export interface DesignMockup {
+  id: string;
+  name: string;
+  description: string;
+  layout: string;
+  vibe: string;
+  imageUrl?: string; // For future: preview image
+}
+
+export interface DesignAnswers {
+  colorPalette?: ColorPaletteOption;
+  typography?: TypographyOption;
+  layoutDirection?: LayoutOption;
+  designMockup?: DesignMockup;
+}
+
+// Question 1: Color Palettes (like Lovable's options)
+export const COLOR_PALETTE_OPTIONS: ColorPaletteOption[] = [
+  {
+    id: 'midnight-indigo',
+    name: 'Midnight Indigo',
+    description: 'Deep navy with bright indigo accents. Professional and modern.',
+    primary: '#1a1f3a',
+    secondary: '#4B7FFF',
+    accent: '#FF50B4',
+    example: 'Perfect for tech, SaaS, and professional portfolios',
+  },
+  {
+    id: 'gold-elegance',
+    name: 'Gold Elegance',
+    description: 'Black with gold highlights. Luxurious and premium.',
+    primary: '#000000',
+    secondary: '#D4AF37',
+    accent: '#F0E68C',
+    example: 'Great for agencies, luxury brands, high-end services',
+  },
+  {
+    id: 'dawn-minimal',
+    name: 'Dawn Minimal',
+    description: 'Light beige with subtle accents. Clean and minimal.',
+    primary: '#F5F1E8',
+    secondary: '#2C2C2C',
+    accent: '#E74C3C',
+    example: 'Perfect for creative portfolios, design agencies',
+  },
+  {
+    id: 'teal-vibrant',
+    name: 'Teal Vibrant',
+    description: 'Deep teal with bright cyan. Modern and energetic.',
+    primary: '#0D3B3D',
+    secondary: '#00D4D4',
+    accent: '#FF6B35',
+    example: 'Ideal for tech startups, apps, and digital services',
+  },
+  {
+    id: 'purple-gradient',
+    name: 'Purple Gradient',
+    description: 'Deep purple with magenta. Creative and bold.',
+    primary: '#2D1B4E',
+    secondary: '#6B5BFF',
+    accent: '#FF50B4',
+    example: 'Great for creative brands, studios, portfolios',
+  },
+];
+
+// Question 2: Typography Pairs
+export const TYPOGRAPHY_OPTIONS: TypographyOption[] = [
+  {
+    id: 'space-dm',
+    name: 'Space Grotesk + DM Sans',
+    heading: 'Space Grotesk',
+    body: 'DM Sans',
+    description: 'Geometric sans with clean body text. Professional.',
+    vibe: 'Modern, tech-forward, professional',
+  },
+  {
+    id: 'instrument-work',
+    name: 'Instrument Serif + Work Sans',
+    heading: 'Instrument Serif',
+    body: 'Work Sans',
+    description: 'Elegant serif with functional sans. Sophisticated.',
+    vibe: 'Editorial, elegant, timeless',
+  },
+  {
+    id: 'sora-manrope',
+    name: 'Sora + Manrope',
+    heading: 'Sora',
+    body: 'Manrope',
+    description: 'Rounded sans with expressive font. Friendly.',
+    vibe: 'Approachable, modern, friendly',
+  },
+  {
+    id: 'archivo-hind',
+    name: 'Archivo Black + Hind',
+    heading: 'Archivo Black',
+    body: 'Hind',
+    description: 'Bold statements with readable body. Dynamic.',
+    vibe: 'Bold, powerful, statement-making',
+  },
+];
+
+// Question 3: Layout Directions
+export const LAYOUT_OPTIONS: LayoutOption[] = [
+  {
+    id: 'hero-bento',
+    name: 'Hero + Bento Grid',
+    description: 'Large hero section with grid-based projects below.',
+    layout: 'Hero section at top, bento grid layout for projects',
+    sections: ['Hero Section', 'Projects Grid', 'Skills', 'Contact'],
+  },
+  {
+    id: 'asymmetric',
+    name: 'Asymmetric Flow',
+    description: 'Staggered, dynamic layout with varied section widths.',
+    layout: 'Alternating left-right sections, varied widths',
+    sections: ['Intro', 'Featured Work', 'Process', 'Contact'],
+  },
+  {
+    id: 'minimalist',
+    name: 'Minimalist Vertical',
+    description: 'Clean, centered layout with generous whitespace.',
+    layout: 'Centered columns with focused content',
+    sections: ['Header', 'About', 'Work', 'Skills', 'Contact'],
+  },
+  {
+    id: 'showcase',
+    name: 'Showcase Focus',
+    description: 'Large project previews dominate the layout.',
+    layout: 'Full-width project showcases',
+    sections: ['Hero', 'Large Project Cards', 'Testimonials', 'CTA'],
+  },
+];
+
+// Question 4: Design Mockups (these would be generated by Lovable/Claude)
+export const DESIGN_MOCKUPS: DesignMockup[] = [
+  {
+    id: 'kv-design',
+    name: 'K.VARDEN Design',
+    description: 'Work-focused portfolio with expertise sections.',
+    layout: 'Hero + project showcase + expertise areas',
+    vibe: 'Professional interface director style',
+  },
+  {
+    id: 'elias-design',
+    name: 'ELIAS.KO Design',
+    description: 'Process-oriented portfolio with workflow visualization.',
+    layout: 'Work + process breakdown + skills',
+    vibe: 'Design-forward, process-focused',
+  },
+  {
+    id: 'marcus-design',
+    name: 'Marcus Vance Design',
+    description: 'Skills-highlighted portfolio with project case studies.',
+    layout: 'Work + skills showcase + detailed cases',
+    vibe: 'Comprehensive, detailed, professional',
+  },
+];
+
+/**
+ * Get the next question in the sequence
+ * @param answeredQuestions Array of already-answered question types
+ * @returns The next question type, or null if all answered
+ */
+export function getNextQuestion(answeredQuestions: DesignQuestion[]): DesignQuestion | null {
+  const questionSequence: DesignQuestion[] = [
+    'colorPalette',
+    'typography',
+    'layoutDirection',
+    'designMockup',
+  ];
+  
+  for (const question of questionSequence) {
+    if (!answeredQuestions.includes(question)) {
+      return question;
+    }
+  }
+  
+  return null; // All questions answered
+}
+
+/**
+ * Get question details for UI rendering
+ * @param question The question type
+ * @returns Configuration for rendering the question
+ */
+export function getQuestionConfig(question: DesignQuestion) {
+  const configs = {
+    colorPalette: {
+      title: 'Which color palette fits your vision?',
+      description: 'Choose a color scheme that matches your brand or aesthetic.',
+      options: COLOR_PALETTE_OPTIONS,
+      type: 'visual-selection' as const,
+    },
+    typography: {
+      title: 'Which typography pair do you prefer?',
+      description: 'Select fonts that define your design direction.',
+      options: TYPOGRAPHY_OPTIONS,
+      type: 'option-selection' as const,
+    },
+    layoutDirection: {
+      title: 'How should the layout be structured?',
+      description: 'Choose a layout approach for your content.',
+      options: LAYOUT_OPTIONS,
+      type: 'visual-selection' as const,
+    },
+    designMockup: {
+      title: 'Which design direction should I build?',
+      description: 'Pick a design style that you prefer.',
+      options: DESIGN_MOCKUPS,
+      type: 'mockup-selection' as const,
+    },
+  };
+  
+  return configs[question];
+}
+
+/**
+ * Check if all required questions have been answered
+ * @param answers The collected answers
+ * @returns true if all questions answered
+ */
+export function areAllQuestionsAnswered(answers: DesignAnswers): boolean {
+  return (
+    !!answers.colorPalette &&
+    !!answers.typography &&
+    !!answers.layoutDirection &&
+    !!answers.designMockup
+  );
+}
+
+/**
+ * Format design answers into a prompt enhancement for Claude
+ * @param answers The collected design answers
+ * @returns String to append to the generation prompt
+ */
+export function formatDesignAnswersForPrompt(answers: DesignAnswers): string {
+  const parts: string[] = [
+    '## Design System Decisions:',
+  ];
+  
+  if (answers.colorPalette) {
+    parts.push(
+      `Color Palette: ${answers.colorPalette.name}`,
+      `Primary: ${answers.colorPalette.primary}, Secondary: ${answers.colorPalette.secondary}, Accent: ${answers.colorPalette.accent}`
+    );
+  }
+  
+  if (answers.typography) {
+    parts.push(
+      `Typography: ${answers.typography.name}`,
+      `Headings: ${answers.typography.heading}, Body: ${answers.typography.body}`
+    );
+  }
+  
+  if (answers.layoutDirection) {
+    parts.push(
+      `Layout: ${answers.layoutDirection.name}`,
+      `Structure: ${answers.layoutDirection.layout}`
+    );
+  }
+  
+  if (answers.designMockup) {
+    parts.push(
+      `Design Direction: ${answers.designMockup.name}`,
+      `Style: ${answers.designMockup.vibe}`
+    );
+  }
+  
+  return parts.join('\n');
+}

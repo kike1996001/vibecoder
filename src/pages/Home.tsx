@@ -20,6 +20,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProviderSelector } from "@/components/ui/ProviderSelector";
+import { DesignQuestions } from "@/components/chat/DesignQuestions";
+import { analyzeComplexity, getComplexity } from "@/services/complexityDetector";
+import { DesignAnswers, formatDesignAnswersForPrompt } from "@/services/designQuestionFlow";
 
 const projectTypes: Array<{ icon: any; label: string; desc: string; template: 'landing' | 'saas' | 'ecommerce' | 'admin' }> = [
   { icon: Zap, label: "Landing Page", desc: "Marketing & conversion", template: "landing" },
@@ -46,6 +49,12 @@ export function Home() {
   const [displayText, setDisplayText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const navigate = useNavigate();
+  
+  // Adaptive workflow states
+  const [showDesignQuestions, setShowDesignQuestions] = useState(false);
+  const [pendingPrompt, setPendingPrompt] = useState("");
+  const [designAnswers, setDesignAnswers] = useState<DesignAnswers | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Typewriter effect
   useEffect(() => {
@@ -72,12 +81,46 @@ export function Home() {
 
   const handleSubmit = () => {
     if (!prompt.trim()) return;
+    
+    // Store pending prompt and detect complexity
+    setPendingPrompt(prompt.trim());
+    const complexity = getComplexity(prompt.trim());
+    
+    if (complexity === 'complex') {
+      // Show design questions for complex apps
+      setShowDesignQuestions(true);
+    } else {
+      // Go directly to workspace for simple apps
+      proceedToGeneration(prompt.trim(), null);
+    }
+  };
+
+  const handleDesignQuestionsSubmitted = (answers: DesignAnswers) => {
+    setDesignAnswers(answers);
+    setShowDesignQuestions(false);
+    proceedToGeneration(pendingPrompt, answers);
+  };
+
+  const proceedToGeneration = (finalPrompt: string, answers: DesignAnswers | null) => {
+    setIsGenerating(true);
+    
+    // Enhance prompt with design answers if available
+    let enhancedPrompt = finalPrompt;
+    if (answers) {
+      const designEnhancements = formatDesignAnswersForPrompt(answers);
+      enhancedPrompt = `${finalPrompt}\n\n${designEnhancements}`;
+    }
+    
     try {
-      window.localStorage.setItem("workshop_pending_prompt", prompt.trim());
+      window.localStorage.setItem("workshop_pending_prompt", enhancedPrompt);
       window.localStorage.setItem("workshop_provider", selectedProvider);
       window.localStorage.setItem("workshop_template", selectedTemplate);
       window.localStorage.setItem("workshop_appType", appType);
-    } catch (e) {}
+      window.localStorage.setItem("workshop_design_answers", JSON.stringify(answers || {}));
+    } catch (e) {
+      console.error("Error saving to localStorage:", e);
+    }
+    
     navigate("/workspace");
   };
 
@@ -88,13 +131,36 @@ export function Home() {
       <div className="absolute top-[20%] left-1/2 -translate-x-1/2 h-[500px] w-[500px] rounded-full bg-violet-500/[0.04] blur-[140px] pointer-events-none" />
 
       <div className="relative z-10 w-full max-w-6xl mx-auto px-6 py-4 space-y-3 flex flex-col items-center">
-        {/* Hero Title */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center space-y-0.5"
-        >
+        {/* Show design questions if complexity detected */}
+        <AnimatePresence mode="wait">
+          {showDesignQuestions ? (
+            <motion.div
+              key="design-questions"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="w-full"
+            >
+              <DesignQuestions 
+                onAnswersSubmitted={handleDesignQuestionsSubmitted}
+                isLoading={isGenerating}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="main-interface"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="w-full flex flex-col items-center gap-3"
+            >
+              {/* Hero Title */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="text-center space-y-0.5"
+              >
           <h1 className="text-2xl md:text-3xl font-normal tracking-tight text-white">
             {displayText}
             <span className="inline-block w-[3px] h-[1em] bg-violet-400 ml-1 animate-pulse" />
@@ -361,6 +427,9 @@ export function Home() {
           <span className="w-1 h-1 rounded-full bg-zinc-700" />
         </motion.div>
 
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
