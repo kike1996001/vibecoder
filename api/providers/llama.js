@@ -1,10 +1,11 @@
-import Together from 'together-ai';
+// Llama provider via Together API
+// Note: Requires TOGETHER_API_KEY environment variable
 
 export class LlamaProvider {
   constructor(apiKey) {
     this.name = 'llama';
     this.model = 'meta-llama/Llama-3-70b-chat-hf';
-    this.client = new Together({ apiKey: apiKey || process.env.TOGETHER_API_KEY });
+    this.apiKey = apiKey || process.env.TOGETHER_API_KEY;
   }
 
   isConfigured() {
@@ -43,24 +44,44 @@ Return valid JSON with "files" array containing only changed/new files.`;
   }
 
   async callTogetherAPI(userPrompt, systemPrompt, onStream) {
-    let fullResponse = '';
-
-    const stream = await this.client.messages.stream({
-      model: this.model,
-      max_tokens: 16384,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    });
-
-    for await (const chunk of stream) {
-      if (chunk.choices?.[0]?.delta?.content) {
-        fullResponse += chunk.choices[0].delta.content;
-        onStream(fullResponse);
-      }
+    if (!this.apiKey) {
+      throw new Error('Together API key not configured');
     }
 
-    const result = this.extractJson(fullResponse);
-    return result;
+    try {
+      let fullResponse = '';
+
+      const response = await fetch('https://api.together.xyz/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: this.model,
+          max_tokens: 16384,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          stream: false,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Together API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      fullResponse = data.choices?.[0]?.message?.content || '';
+      onStream(fullResponse);
+
+      const result = this.extractJson(fullResponse);
+      return result;
+    } catch (error) {
+      console.error('Together API call failed:', error);
+      throw error;
+    }
   }
 
   extractJson(rawText) {
