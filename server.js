@@ -1,7 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 
-const PORT = process.env.API_PORT || 5178;
+// Railway sets PORT environment variable, fallback to API_PORT or 5178
+const PORT = process.env.PORT || process.env.API_PORT || 5178;
 const app = express();
 
 // Minimal middleware
