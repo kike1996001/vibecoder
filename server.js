@@ -21,6 +21,17 @@ const { sendPaymentConfirmation } = require('./emailService.cjs');
 const PORT = process.env.API_PORT || 5178;
 
 // ========================
+// DEBUG: Log environment variables
+// ========================
+console.log('[STARTUP] Environment Variables Check:');
+console.log(`  NODE_ENV: ${process.env.NODE_ENV || 'NOT SET'}`);
+console.log(`  SUPABASE_URL: ${process.env.SUPABASE_URL ? 'SET' : 'NOT SET'}`);
+console.log(`  SUPABASE_SERVICE_ROLE_KEY: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SET' : 'NOT SET'}`);
+console.log(`  ANTHROPIC_API_KEY: ${process.env.ANTHROPIC_API_KEY ? 'SET' : 'NOT SET'}`);
+console.log(`  FRONTEND_URL: ${process.env.FRONTEND_URL || 'NOT SET'}`);
+console.log('[STARTUP] End environment check');
+
+// ========================
 // SECURITY: CORS WHITELIST
 // ========================
 const ALLOWED_ORIGINS = [
