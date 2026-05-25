@@ -1,4 +1,4 @@
-import { ProviderFactory } from './providers/factory.ts';
+import { ProviderFactory } from './providers/factory.js';
 
 export default function handler(req: any, res: any) {
   if (req.method !== 'GET') {

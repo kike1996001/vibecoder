@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { IProvider, ProviderResponse } from './types.ts';
+import { IProvider, ProviderResponse } from './types.js';
 
 export class AnthropicProvider implements IProvider {
   name: 'anthropic' = 'anthropic';
