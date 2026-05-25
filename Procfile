@@ -1,1 +1,1 @@
-web: npx tsc && node server.js
+web: npx tsc -p tsconfig.server.json && node server.js

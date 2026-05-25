@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "skipLibCheck": true,
+    "strict": false,
+    "resolveJsonModule": true,
+    "declaration": false,
+    "outDir": "./",
+    "rootDir": "./",
+    "lib": ["ES2022"]
+  },
+  "include": ["api/**/*.ts", "server.ts"],
+  "exclude": ["node_modules", "dist", ".vite", "src"]
+}
