@@ -1,20 +1,41 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+let supabaseInstance = null;
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error('Missing Supabase configuration (SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY)');
+function getSupabaseClient() {
+  if (supabaseInstance) {
+    return supabaseInstance;
+  }
+
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error(
+      'Missing Supabase configuration. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.\n' +
+      `Current: SUPABASE_URL=${supabaseUrl ? 'SET' : 'NOT SET'}, SUPABASE_SERVICE_ROLE_KEY=${supabaseServiceKey ? 'SET' : 'NOT SET'}`
+    );
+  }
+
+  supabaseInstance = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+
+  return supabaseInstance;
 }
 
 /**
  * Server-side Supabase client with service role permissions
  * Used for admin operations like updating credits, processing payments
+ * Lazily initialized to allow for runtime environment variable loading
  */
-export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
+export const supabase = new Proxy({}, {
+  get: (target, prop) => {
+    const client = getSupabaseClient();
+    return client[prop];
   },
 });
 
