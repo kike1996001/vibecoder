@@ -37,6 +37,14 @@ process.on('unhandledRejection', (reason, promise) => {
   // Don't exit - let Railway handle it
 });
 
+process.on('SIGTERM', () => {
+  console.log('[SHUTDOWN] Received SIGTERM signal');
+});
+
+process.on('SIGINT', () => {
+  console.log('[SHUTDOWN] Received SIGINT signal');
+});
+
 // ========================
 // DEBUG: Log environment variables
 // ========================
@@ -1006,6 +1014,11 @@ function getProviderApiKey(provider) {
 // ========================
 console.log('[STARTUP] All endpoints registered ✓');
 console.log('[STARTUP] Starting Express server on port', PORT);
+
+// Keep-alive check to prevent Railway from killing the process
+setInterval(() => {
+  console.log('[KEEP-ALIVE] Server still running at', new Date().toISOString());
+}, 60000);
 
 try {
   app.listen(PORT, () => {
