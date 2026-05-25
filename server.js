@@ -26,7 +26,7 @@ const PORT = process.env.API_PORT || 5178;
 process.on('uncaughtException', (error) => {
   console.error('[FATAL] Uncaught Exception:', error);
   console.error(error.stack);
-  process.exit(1);
+  // Don't exit - let Railway handle it
 });
 
 process.on('unhandledRejection', (reason, promise) => {
@@ -34,7 +34,7 @@ process.on('unhandledRejection', (reason, promise) => {
   if (reason instanceof Error) {
     console.error(reason.stack);
   }
-  process.exit(1);
+  // Don't exit - let Railway handle it
 });
 
 // ========================
