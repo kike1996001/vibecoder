@@ -21,6 +21,23 @@ const { sendPaymentConfirmation } = require('./emailService.cjs');
 const PORT = process.env.API_PORT || 5178;
 
 // ========================
+// GLOBAL ERROR HANDLERS
+// ========================
+process.on('uncaughtException', (error) => {
+  console.error('[FATAL] Uncaught Exception:', error);
+  console.error(error.stack);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[FATAL] Unhandled Rejection at:', promise, 'reason:', reason);
+  if (reason instanceof Error) {
+    console.error(reason.stack);
+  }
+  process.exit(1);
+});
+
+// ========================
 // DEBUG: Log environment variables
 // ========================
 console.log('[STARTUP] Environment Variables Check:');
@@ -996,4 +1013,5 @@ Endpoints:
 
 Docs: https://github.com/vibecoder/api-docs
   `);
+  console.log('[STARTUP] Server initialization complete ✅');
 });
