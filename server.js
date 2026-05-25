@@ -197,15 +197,22 @@ async function verifyJWT(req, res, next) {
 // ========================
 // SETUP EXPRESS & MIDDLEWARE
 // ========================
+console.log('[STARTUP] Creating Express app...');
 const app = express();
 
 // Middleware order is important!
+console.log('[STARTUP] Setting up middleware...');
 app.use(express.json({ limit: '1mb' }));  // Limit request size
+console.log('[STARTUP]  ✓ JSON parser loaded');
 app.use(express.text({ limit: '10mb' })); // For streaming responses
+console.log('[STARTUP]  ✓ Text parser loaded');
 app.use(cors(corsOptions));
+console.log('[STARTUP]  ✓ CORS loaded');
 app.use(globalLimiter);
+console.log('[STARTUP]  ✓ Rate limiter loaded');
 
 // Error handling middleware
+console.log('[STARTUP] Setting up error handling middleware...');
 app.use((err, req, res, next) => {
   console.error('Error:', err);
   if (err.message.includes('CORS policy')) {
@@ -216,10 +223,12 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Internal server error', details: process.env.NODE_ENV === 'development' ? err.message : undefined });
   }
 });
+console.log('[STARTUP]  ✓ Error handling middleware loaded');
 
 // ========================
 // API ENDPOINTS
 // ========================
+console.log('[STARTUP] Registering API endpoints...');
 
 /**
  * POST /api/config
@@ -964,6 +973,7 @@ app.get('/api/analytics/summary', verifyJWT, async (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+console.log('[STARTUP]  ✓ GET  /api/health registered');
 
 /**
  * 404 handler
@@ -971,6 +981,7 @@ app.get('/api/health', (req, res) => {
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found', path: req.path });
 });
+console.log('[STARTUP]  ✓ 404 handler registered');
 
 // ========================
 // HELPER: GET API KEY BY PROVIDER
@@ -993,8 +1004,12 @@ function getProviderApiKey(provider) {
 // ========================
 // START SERVER
 // ========================
-app.listen(PORT, () => {
-  console.log(`
+console.log('[STARTUP] All endpoints registered ✓');
+console.log('[STARTUP] Starting Express server on port', PORT);
+
+try {
+  app.listen(PORT, () => {
+    console.log(`
 ╔════════════════════════════════════════╗
 ║  🚀 VibeCoder API Server (PRODUCTION)  ║
 ╚════════════════════════════════════════╝
@@ -1014,4 +1029,8 @@ Endpoints:
 Docs: https://github.com/vibecoder/api-docs
   `);
   console.log('[STARTUP] Server initialization complete ✅');
-});
+  });
+} catch (error) {
+  console.error('[STARTUP] FATAL ERROR during server setup:', error);
+  console.error(error.stack);
+}
