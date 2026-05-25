@@ -1,0 +1,4 @@
+dist
+.vite
+*.log
+node_modules/.cache
