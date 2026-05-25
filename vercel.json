@@ -3,14 +3,17 @@
   "installCommand": "npm install",
   "framework": "vite",
   "outputDirectory": "dist",
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "nodejs18.x",
+      "memory": 3008,
+      "maxDuration": 60
+    }
+  },
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "server.js"
-    },
-    {
       "source": "/:path*",
-      "destination": "index.html"
+      "destination": "/index.html"
     }
   ]
 }

@@ -1,0 +1,17 @@
+node_modules
+.git
+.gitignore
+README.md
+.env.local
+.DS_Store
+dist
+build
+coverage
+*.log
+server.js
+deploy.sh
+deploy-backend.sh
+carousel-demo.html
+DEPLOYMENT.md
+README-PRODUCTION.md
+QUICK-DEPLOY.md
