@@ -1,5 +1,5 @@
-import { ProviderFactory } from './providers/factory';
-import { ProviderType } from './providers/types';
+import { ProviderFactory } from './providers/factory.ts';
+import { ProviderType } from './providers/types.ts';
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 

@@ -1,4 +1,4 @@
-import { IProvider, ProviderResponse } from './types';
+import { IProvider, ProviderResponse } from './types.ts';
 
 export class LlamaProvider implements IProvider {
   name: 'llama' = 'llama';

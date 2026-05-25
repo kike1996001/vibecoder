@@ -1,8 +1,8 @@
-import { IProvider, ProviderType } from './types';
-import { AnthropicProvider } from './anthropic';
-import { GeminiProvider } from './gemini';
-import { LlamaProvider } from './llama';
-import { OpenAIProvider } from './openai';
+import { IProvider, ProviderType } from './types.ts';
+import { AnthropicProvider } from './anthropic.ts';
+import { GeminiProvider } from './gemini.ts';
+import { LlamaProvider } from './llama.ts';
+import { OpenAIProvider } from './openai.ts';
 
 export class ProviderFactory {
   private static providers: Map<ProviderType, IProvider> = new Map();

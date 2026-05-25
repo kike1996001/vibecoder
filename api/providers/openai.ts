@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { IProvider, ProviderResponse } from './types';
+import { IProvider, ProviderResponse } from './types.ts';
 
 export class OpenAIProvider implements IProvider {
   name: 'openai' = 'openai';

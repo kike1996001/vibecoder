@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { IProvider, ProviderResponse } from './types';
+import { IProvider, ProviderResponse } from './types.ts';
 
 export class GeminiProvider implements IProvider {
   name: 'gemini' = 'gemini';
