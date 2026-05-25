@@ -23,6 +23,7 @@ export function useAuth() {
 
     const initializeAuth = async () => {
       try {
+        console.log("[useAuth] Initializing auth...");
         // Get current session
         const {
           data: { session: currentSession },
@@ -31,22 +32,26 @@ export function useAuth() {
 
         if (sessionError) throw sessionError;
 
+        console.log("[useAuth] Current session:", currentSession ? "EXISTS" : "NULL");
+
         if (mounted) {
           setSession(currentSession);
 
           // If there's a session, fetch user profile
           if (currentSession?.user) {
             const userData = mapSupabaseUserToAppUser(currentSession.user);
+            console.log("[useAuth] User profile loaded:", userData.email);
             setUser(userData);
           }
         }
       } catch (err) {
-        console.error('Auth initialization error:', err);
+        console.error('[useAuth] Auth initialization error:', err);
         if (mounted) {
           setError(err instanceof Error ? err.message : 'Auth error');
         }
       } finally {
         if (mounted) {
+          console.log("[useAuth] Auth initialization complete");
           setIsLoading(false);
         }
       }
@@ -60,7 +65,7 @@ export function useAuth() {
     } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (!mounted) return;
 
-      console.log('[Auth] State changed:', event);
+      console.log('[useAuth] Auth state changed:', event, "Session:", currentSession ? "EXISTS" : "NULL");
       setSession(currentSession);
 
       if (currentSession?.user) {

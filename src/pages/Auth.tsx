@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ type AuthMode = 'login' | 'signup';
 
 export function Auth() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,7 +40,10 @@ export function Auth() {
       } else {
         await supabaseService.signIn(email, password);
         // Auth state will update via session listener
-        navigate('/');
+        // Check if there's a returnTo location in state
+        const returnTo = (location.state as any)?.returnTo || '/';
+        console.log("[Auth] Login successful, redirecting to:", returnTo);
+        navigate(returnTo);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Authentication failed';

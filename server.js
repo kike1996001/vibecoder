@@ -10,7 +10,7 @@ import { ProviderFactory } from './api/providers/factory.ts';
 import { supabase, getUserBalance, getCreditHistory, addCreditTransaction, hasEnoughCredits } from './api/supabaseClient.js';
 import { calculateCreditsNeeded } from './api/creditCalculator.js';
 import { metricsHandler, timelineHandler, providersHandler } from './api/metricsHandlers.js';
-import { trackEvent } from './api/analyticsService.js';
+import { trackEvent } from './api/analyticsService.ts';
 import { optimizePrompt, getImprovementsSummary } from './api/promptOptimizer.js';
 import { formatDesignAnswersForGeneration, logDesignAnswers } from './api/designAnswerFormatter.js';
 import { getStatusMessage, createStatusUpdateEvent } from './api/statusMessageService.js';
@@ -203,6 +203,27 @@ app.get('/api/config', (req, res) => {
     providers: ['anthropic', 'gemini', 'llama'],
     templates: ['landing', 'saas', 'ecommerce', 'admin'],
     platforms: ['web', 'mobile'],
+  });
+});
+
+/**
+ * GET /api/providers
+ * Return list of available AI providers based on API keys configured
+ */
+app.get('/api/providers', (req, res) => {
+  const available = [];
+  
+  if (process.env.ANTHROPIC_API_KEY) available.push('anthropic');
+  if (process.env.GOOGLE_API_KEY) available.push('gemini');
+  if (process.env.TOGETHER_API_KEY) available.push('llama');
+  if (process.env.OPENAI_API_KEY) available.push('openai');
+
+  // Default to anthropic if no providers configured
+  if (available.length === 0) available.push('anthropic');
+
+  res.json({
+    available,
+    default: available[0],
   });
 });
 

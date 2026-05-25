@@ -9,10 +9,13 @@ import {
   Database,
   Globe,
   Atom,
+  LogOut,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProviderSelector } from "@/components/ui/ProviderSelector";
 import { DesignQuestions } from "@/components/chat/DesignQuestions";
+import { useAuth } from "@/hooks/useAuth";
 import { getComplexity } from "@/services/complexityDetector";
 import { DesignAnswers, formatDesignAnswersForPrompt } from "@/services/designQuestionFlow";
 
@@ -35,11 +38,30 @@ export function Home() {
   const [isFocused, setIsFocused] = useState(false);
   const [selectedType, setSelectedType] = useState(projectTypes[0]);
   const [showTypeMenu, setShowTypeMenu] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState("anthropic");
+  const [selectedProvider, setSelectedProvider] = useState("openai");
   const [selectedTemplate, setSelectedTemplate] = useState<'landing' | 'saas' | 'ecommerce' | 'admin'>(projectTypes[0].template);
   const [appType, setAppType] = useState<'web' | 'mobile'>('web');
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const navigate = useNavigate();
+  const { isAuthenticated, user, signOut } = useAuth();
+  
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      setUserMenuOpen(false);
+      navigate("/auth");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+  
+  const userInitials = (user?.name || user?.email || "?")
+    .split(" ")
+    .map((n: string) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
   
   // Adaptive workflow states
   const [showDesignQuestions, setShowDesignQuestions] = useState(false);
@@ -57,6 +79,13 @@ export function Home() {
 
   const handleSubmit = () => {
     if (!prompt.trim()) return;
+    
+    // TODO: Restore auth check after testing
+    // Check authentication first
+    // if (!isAuthenticated) {
+    //   navigate("/auth", { state: { returnTo: "/workspace", pendingGeneration: true } });
+    //   return;
+    // }
     
     // Store pending prompt and detect complexity
     setPendingPrompt(prompt.trim());
@@ -87,17 +116,17 @@ export function Home() {
       enhancedPrompt = `${finalPrompt}\n\n${designEnhancements}`;
     }
     
-    try {
-      window.localStorage.setItem("workshop_pending_prompt", enhancedPrompt);
-      window.localStorage.setItem("workshop_provider", selectedProvider);
-      window.localStorage.setItem("workshop_template", selectedTemplate);
-      window.localStorage.setItem("workshop_appType", appType);
-      window.localStorage.setItem("workshop_design_answers", JSON.stringify(answers || {}));
-    } catch (e) {
-      console.error("Error saving to localStorage:", e);
-    }
+    // Use URL query parameters for better reliability across reloads
+    const params = new URLSearchParams({
+      prompt: enhancedPrompt,
+      provider: selectedProvider,
+      template: selectedTemplate,
+      appType: appType,
+      designAnswers: JSON.stringify(answers || {})
+    });
     
-    navigate("/workspace");
+    console.log("[Home] Navigating to workspace with query params");
+    navigate(`/workspace?${params.toString()}`);
   };
 
   return (
@@ -132,16 +161,71 @@ export function Home() {
             <button className="text-[11px] text-white/60 hover:text-white/80 transition-colors">
               Gallery
             </button>
-            <button className="px-3 py-1.5 rounded-lg text-[11px] font-medium text-white/60 border border-white/[0.12] hover:border-white/[0.2] hover:bg-white/[0.04] transition-all">
-              Sign in
-            </button>
+            
+            {isAuthenticated && user ? (
+              <div className="relative">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center text-white text-[10px] font-bold shadow-lg shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 transition-all"
+                  title={user.email}
+                >
+                  {userInitials}
+                </motion.button>
+                
+                <AnimatePresence>
+                  {userMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-48 rounded-lg bg-[#151515]/95 backdrop-blur border border-white/[0.12] shadow-xl z-50"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <div className="px-4 py-3 border-b border-white/[0.06]">
+                        <p className="text-xs text-white/50">Signed in as</p>
+                        <p className="text-sm font-medium text-white truncate">{user.email}</p>
+                        {user.name && <p className="text-xs text-white/60">{user.name}</p>}
+                      </div>
+                      
+                      <div className="py-1">
+                        <button
+                          onClick={() => navigate("/settings")}
+                          className="w-full px-4 py-2 text-[11px] text-white/70 hover:text-white hover:bg-white/[0.08] flex items-center gap-2 transition-colors"
+                        >
+                          <Settings className="w-3.5 h-3.5" />
+                          Settings
+                        </button>
+                        
+                        <button
+                          onClick={handleLogout}
+                          className="w-full px-4 py-2 text-[11px] text-red-400 hover:text-red-300 hover:bg-red-500/10 flex items-center gap-2 transition-colors border-t border-white/[0.06] mt-1 pt-2"
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                          Sign Out
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <button 
+                onClick={() => navigate("/auth")}
+                className="px-3 py-1.5 rounded-lg text-[11px] font-medium text-white/60 border border-white/[0.12] hover:border-white/[0.2] hover:bg-white/[0.04] transition-all hover:text-white/80"
+              >
+                Sign in
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Main content area */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-12 overflow-auto">
-        <div className="w-full max-w-2xl space-y-8 flex flex-col items-center">
+      <div className="relative flex-1 flex flex-col items-center justify-start px-6 pt-8 pb-12 overflow-y-auto">
+        <div className="w-full max-w-2xl space-y-6 flex flex-col items-center">
           <AnimatePresence mode="wait">
             {showDesignQuestions ? (
               <motion.div
@@ -176,7 +260,7 @@ export function Home() {
                   </h1>
                   <p className="text-base text-white/60 max-w-2xl mx-auto">
                     Describe your idea, and Vibecoder generates a fully functional app with design and code. 
-                    No login needed — start building instantly.
+                    Sign in to start building instantly.
                   </p>
                 </motion.div>
 

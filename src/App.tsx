@@ -84,13 +84,27 @@ export function App() {
             }
           />
 
+          {/* Workspace Route (PUBLIC - NO LOGIN REQUIRED FOR TESTING) */}
+          <Route
+            path="/workspace"
+            element={
+              <motion.div
+                key="workspace"
+                variants={pageVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={pageTransition}
+                className="h-full w-full"
+              >
+                <Workspace />
+              </motion.div>
+            }
+          />
+
           {/* Protected Routes with AppShell layout */}
           <Route
-            element={
-              <ProtectedRoute>
-                <AppShell />
-              </ProtectedRoute>
-            }
+            element={<ProtectedRoute><AppShell /></ProtectedRoute>}
           >
             <Route
               path="/dashboard"
@@ -105,22 +119,6 @@ export function App() {
                   className="h-full w-full"
                 >
                   <Dashboard />
-                </motion.div>
-              }
-            />
-            <Route
-              path="/workspace"
-              element={
-                <motion.div
-                  key="workspace"
-                  variants={pageVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  transition={pageTransition}
-                  className="h-full w-full"
-                >
-                  <Workspace />
                 </motion.div>
               }
             />

@@ -7,10 +7,27 @@ let serverUrl: string | null = null;
 
 export const webcontainerService = {
   async boot(): Promise<void> {
-    if (webcontainerInstance) return;
+    if (webcontainerInstance) {
+      console.log('[WebContainer] Already booted');
+      return;
+    }
     
-    webcontainerInstance = await WebContainer.boot();
-    console.log('[WebContainer] Booted successfully');
+    try {
+      console.log('[WebContainer] Starting boot...');
+      // Increase timeout to 30 seconds
+      const bootPromise = WebContainer.boot();
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Boot timeout - 30s')), 30000)
+      );
+      
+      webcontainerInstance = await Promise.race([bootPromise, timeoutPromise]);
+      console.log('[WebContainer] Booted successfully');
+    } catch (error) {
+      console.error('[WebContainer] Boot failed:', error);
+      // Continue anyway - preview won't work but generation will show
+      webcontainerInstance = null;
+      throw error;
+    }
   },
 
   async mountFiles(files: GeneratedFile[]): Promise<void> {

@@ -59,7 +59,7 @@ interface ProjectState {
   openFile: (projectId: string, fileId: string) => void;
   closeFile: (projectId: string, fileId: string) => void;
   setProjectStatus: (projectId: string, status: Project["status"], error?: string) => void;
-  setPreviewUrl: (projectId: string, url: string) => void;
+  setPreviewUrl: (projectId: string, url: string | null) => void;
   setStreamingContent: (content: string) => void;
   setIsGenerating: (isGenerating: boolean) => void;
   deleteProject: (id: string) => void;
