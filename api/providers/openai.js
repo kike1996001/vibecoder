@@ -45,7 +45,7 @@ Return valid JSON with "files" array containing only changed/new files.`;
   async callOpenAIAPI(userPrompt, systemPrompt, onStream) {
     let fullResponse = '';
 
-    const stream = await this.client.messages.create({
+    const stream = await this.client.chat.completions.create({
       model: this.model,
       max_tokens: 16384,
       system: systemPrompt,
@@ -54,9 +54,9 @@ Return valid JSON with "files" array containing only changed/new files.`;
     });
 
     for await (const chunk of stream) {
-      const delta = chunk?.delta;
-      if (chunk.type === 'content_block_delta' && delta?.type === 'text') {
-        fullResponse += delta.text;
+      const delta = chunk?.choices?.[0]?.delta;
+      if (delta?.content) {
+        fullResponse += delta.content;
         onStream(fullResponse);
       }
     }
