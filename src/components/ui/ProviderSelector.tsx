@@ -41,7 +41,8 @@ export function ProviderSelector({ value, onChange, compact }: ProviderSelectorP
   const [available, setAvailable] = useState<string[]>(['anthropic']);
 
   useEffect(() => {
-    fetch('/api/providers')
+    const apiUrl = import.meta.env.VITE_API_URL || '/api';
+    fetch(`${apiUrl}/providers`)
       .then(res => res.json())
       .then(data => {
         setAvailable(data.available || ['anthropic']);
