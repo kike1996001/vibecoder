@@ -22,6 +22,7 @@ import { ProviderSelector } from '@/components/ui/ProviderSelector';
 import { LanguageSelector } from '@/components/ui/LanguageSelector';
 import { useAppGeneration } from '@/hooks/useAppGeneration';
 import { useProjectStore } from '@/stores/projectStore';
+import { useAuth } from '@/hooks/useAuth';
 import { GenerationStatusDisplay } from './GenerationStatusDisplay';
 import { StatusMessages, useStatusMessages } from './StatusMessages';
 import { DesignValidationReport } from './DesignValidationReport';
@@ -81,6 +82,7 @@ export function ChatPanel({
   appType = 'web',
   designAnswers,
 }: ChatPanelProps) {
+  const { session } = useAuth(); // Get Supabase session with JWT token
   const [input, setInput] = useState('');
   const [provider, setProvider] = useState(initialProvider);
   const [currentStatus, setCurrentStatus] = useState('');
@@ -257,6 +259,12 @@ export function ChatPanel({
         
         setStatusMessageSequence(sequence);
         setStatusMessageInterval(interval);
+        
+        // Check authentication (useAppGeneration will handle token internally)
+        if (!session?.access_token) {
+          addLog('❌ No autorización encontrada. Por favor inicia sesión.', 'error');
+          return;
+        }
         
         await generateApp(text, { provider, template, appType, designAnswers });
         onProgressChange?.(75);
