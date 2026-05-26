@@ -63,7 +63,8 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5173',        // Local dev
   'http://localhost:5174',        // Alternative local
   'http://localhost:3000',        // Next.js dev
-  process.env.FRONTEND_URL,       // Production frontend
+  'https://vibecodernew.vercel.app',  // Vercel production frontend
+  process.env.FRONTEND_URL,       // Production frontend (env var)
 ].filter(Boolean);
 
 const corsOptions = {
